@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, StatusBar, FlatList, Platform, KeyboardAvoidingView, TouchableOpacity, Animated as RNAnimated, LayoutAnimation, UIManager } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Compass, Menu, Plus, Sparkles } from 'lucide-react-native';
+import { View, Text, StyleSheet, SafeAreaView, StatusBar, FlatList, Platform, KeyboardAvoidingView, TouchableOpacity, ScrollView } from 'react-native';
+import Animated, { FadeIn, FadeInDown, FadeOut, Layout, SlideInUp } from 'react-native-reanimated';
+import { Compass, Menu, Plus, Sparkles, Zap } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { COLORS, SPACING, TYPOGRAPHY, RADIUS } from '../constants/theme';
 import { showBubble, completeBubble, dismissBubble } from '../services/bubbleNotification';
@@ -9,6 +9,7 @@ import voiceService from '../services/voiceService';
 import { AnimatedSearchBar } from '../components/AnimatedSearchBar';
 import { ThreadItem } from '../components/ThreadItem';
 import { GlassView } from '../components/GlassView';
+import { AnimatedGradient } from '../components/AnimatedGradient';
 
 const API_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
 
@@ -33,8 +34,10 @@ export default function HomeScreen({ navigation }: any) {
     const [isLoading, setIsLoading] = useState(false);
     const [mode, setMode] = useState<'concierge' | 'pilot'>('pilot');
     const [isThreadActive, setIsThreadActive] = useState(false);
+    const [showSuggestions, setShowSuggestions] = useState(true);
 
     const flatListRef = useRef<FlatList>(null);
+    const scrollViewRef = useRef<ScrollView>(null);
 
     // Voice state
     const [isListening, setIsListening] = useState(false);
@@ -69,8 +72,7 @@ export default function HomeScreen({ navigation }: any) {
 
         const userText = query;
         setQuery('');
-
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setShowSuggestions(false);
         setIsThreadActive(true);
 
         // Add user message
@@ -132,83 +134,153 @@ export default function HomeScreen({ navigation }: any) {
         }
     };
 
-    const renderHero = () => (
-        <View style={styles.heroContainer}>
-            <View style={styles.heroContent}>
-                <Sparkles color={COLORS.primary} size={48} style={styles.heroIcon} />
-                <Text style={styles.heroTitle}>Where knowledge begins</Text>
-                <AnimatedSearchBar
-                    value={query}
-                    onChangeText={setQuery}
-                    onSubmit={handleSearchSubmit}
-                    isExpanded={false}
-                    isListening={isListening}
-                    onMicPress={handleVoiceToggle}
-                />
+    const suggestions = [
+        { text: 'Summarize this article', icon: '📄' },
+        { text: 'Plan a trip to Tokyo', icon: '✈️' },
+        { text: 'Debug my code', icon: '🐛' },
+        { text: 'Write an email', icon: '✉️' },
+        { text: 'Translate to Spanish', icon: '🌐' },
+        { text: 'Create a workout plan', icon: '💪' },
+    ];
 
-                <View style={styles.suggestionsContainer}>
-                    {['Summarize this article', 'Plan a trip to Tokyo', 'Debug my code'].map((suggestion, idx) => (
-                        <TouchableOpacity
-                            key={idx}
-                            style={styles.suggestionChip}
-                            onPress={() => {
-                                Haptics.selectionAsync();
-                                setQuery(suggestion);
-                                // Optional: auto-submit
-                            }}
-                        >
-                            <Text style={styles.suggestionText}>{suggestion}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            </View>
-        </View>
+    const renderHero = () => (
+        <ScrollView
+            ref={scrollViewRef}
+            style={styles.heroScrollContainer}
+            contentContainerStyle={styles.heroContainer}
+            showsVerticalScrollIndicator={false}
+        >
+            <Animated.View
+                entering={FadeInDown.duration(800).delay(100)}
+                style={styles.heroContent}
+            >
+                <Animated.View
+                    entering={FadeInDown.duration(600).delay(200)}
+                    style={styles.logoContainer}
+                >
+                    <View style={styles.logoGlow}>
+                        <Zap color={COLORS.primary} size={40} fill={COLORS.primary} />
+                    </View>
+                </Animated.View>
+
+                <Animated.Text
+                    entering={FadeInDown.duration(600).delay(300)}
+                    style={styles.heroTitle}
+                >
+                    Where knowledge begins
+                </Animated.Text>
+
+                <Animated.Text
+                    entering={FadeInDown.duration(600).delay(400)}
+                    style={styles.heroSubtitle}
+                >
+                    Ask anything. Get instant answers.
+                </Animated.Text>
+
+                <Animated.View
+                    entering={FadeInDown.duration(600).delay(500)}
+                    style={styles.searchBarContainer}
+                >
+                    <AnimatedSearchBar
+                        value={query}
+                        onChangeText={setQuery}
+                        onSubmit={handleSearchSubmit}
+                        isExpanded={false}
+                        isListening={isListening}
+                        onMicPress={handleVoiceToggle}
+                    />
+                </Animated.View>
+
+                {showSuggestions && (
+                    <Animated.View
+                        entering={FadeInDown.duration(600).delay(600)}
+                        style={styles.suggestionsWrapper}
+                    >
+                        <Text style={styles.suggestionsLabel}>Try asking:</Text>
+                        <View style={styles.suggestionsContainer}>
+                            {suggestions.map((suggestion, idx) => (
+                                <Animated.View
+                                    key={idx}
+                                    entering={FadeInDown.duration(400).delay(700 + idx * 100)}
+                                >
+                                    <TouchableOpacity
+                                        style={styles.suggestionChip}
+                                        onPress={() => {
+                                            Haptics.selectionAsync();
+                                            setQuery(suggestion.text);
+                                        }}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text style={styles.suggestionIcon}>{suggestion.icon}</Text>
+                                        <Text style={styles.suggestionText}>{suggestion.text}</Text>
+                                    </TouchableOpacity>
+                                </Animated.View>
+                            ))}
+                        </View>
+                    </Animated.View>
+                )}
+            </Animated.View>
+        </ScrollView>
     );
 
     return (
         <View style={styles.container}>
             <StatusBar barStyle="light-content" />
-            <LinearGradient
-                colors={[COLORS.background, '#1A1A2E']}
-                style={styles.background}
-            />
+            <AnimatedGradient />
 
             <SafeAreaView style={styles.safeArea}>
                 {/* Header */}
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
-                        <Menu color={COLORS.text} size={24} />
+                <Animated.View
+                    entering={FadeIn.duration(400)}
+                    style={styles.header}
+                >
+                    <TouchableOpacity
+                        onPress={() => {
+                            Haptics.selectionAsync();
+                            navigation.navigate('Settings');
+                        }}
+                        style={styles.headerButton}
+                    >
+                        <Menu color={COLORS.text} size={22} />
                     </TouchableOpacity>
                     <Text style={styles.headerLogo}>Companion</Text>
                     <TouchableOpacity
-                        style={styles.newThreadButton}
+                        style={styles.headerButton}
                         onPress={() => {
                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                             setIsThreadActive(false);
                             setChatHistory([]);
+                            setShowSuggestions(true);
                         }}
                     >
-                        <Plus color={COLORS.text} size={24} />
+                        <Plus color={COLORS.text} size={22} />
                     </TouchableOpacity>
-                </View>
+                </Animated.View>
 
-                {/* Main Content */}
                 <View style={styles.content}>
                     {!isThreadActive ? (
                         renderHero()
                     ) : (
-                        <View style={styles.threadContainer}>
+                        <Animated.View
+                            entering={FadeIn.duration(400)}
+                            style={styles.threadContainer}
+                        >
                             <FlatList
                                 ref={flatListRef}
                                 data={chatHistory}
                                 keyExtractor={item => item.id}
-                                renderItem={({ item }) => <ThreadItem message={item} />}
+                                renderItem={({ item, index }) => (
+                                    <Animated.View
+                                        entering={SlideInUp.duration(400).delay(index * 100)}
+                                        layout={Layout.duration(300)}
+                                    >
+                                        <ThreadItem message={item} />
+                                    </Animated.View>
+                                )}
                                 contentContainerStyle={styles.threadContent}
                                 showsVerticalScrollIndicator={false}
                             />
 
-                            {/* Bottom Input Area for Thread */}
                             <GlassView style={styles.bottomInputContainer} intensity={80}>
                                 <AnimatedSearchBar
                                     value={query}
@@ -220,7 +292,7 @@ export default function HomeScreen({ navigation }: any) {
                                     onMicPress={handleVoiceToggle}
                                 />
                             </GlassView>
-                        </View>
+                        </Animated.View>
                     )}
                 </View>
             </SafeAreaView>
@@ -233,9 +305,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: COLORS.background,
     },
-    background: {
-        ...StyleSheet.absoluteFillObject,
-    },
     safeArea: {
         flex: 1,
     },
@@ -244,43 +313,93 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: SPACING.m,
-        paddingVertical: SPACING.s,
+        paddingVertical: SPACING.m,
         zIndex: 10,
+    },
+    headerButton: {
+        width: 40,
+        height: 40,
+        borderRadius: RADIUS.round,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: COLORS.surface,
     },
     headerLogo: {
         ...TYPOGRAPHY.h3,
-        fontFamily: Platform.OS === 'ios' ? 'serif' : 'serif', // Attempt to use a serif font for that "knowledge" feel
-    },
-    newThreadButton: {
-        padding: SPACING.xs,
+        fontSize: 18,
+        fontWeight: '600',
+        letterSpacing: 0.5,
     },
     content: {
         flex: 1,
     },
-    heroContainer: {
+    heroScrollContainer: {
         flex: 1,
+    },
+    heroContainer: {
+        flexGrow: 1,
         justifyContent: 'center',
         paddingHorizontal: SPACING.l,
+        paddingVertical: SPACING.xxl,
     },
     heroContent: {
         alignItems: 'center',
-        gap: SPACING.xl,
-        marginTop: -100, // Visual offset
+        gap: SPACING.l,
     },
-    heroIcon: {
-        opacity: 0.9,
+    logoContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: SPACING.s,
+    },
+    logoGlow: {
+        width: 80,
+        height: 80,
+        borderRadius: RADIUS.xl,
+        backgroundColor: 'rgba(43, 184, 167, 0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
+        elevation: 10,
     },
     heroTitle: {
         ...TYPOGRAPHY.h1,
+        fontSize: 36,
         textAlign: 'center',
+        fontWeight: '700',
+        letterSpacing: -1,
+    },
+    heroSubtitle: {
+        ...TYPOGRAPHY.body,
+        fontSize: 17,
+        textAlign: 'center',
+        color: COLORS.textSecondary,
         marginBottom: SPACING.m,
+    },
+    searchBarContainer: {
+        width: '100%',
+        marginBottom: SPACING.l,
+    },
+    suggestionsWrapper: {
+        width: '100%',
+        marginTop: SPACING.l,
+    },
+    suggestionsLabel: {
+        ...TYPOGRAPHY.caption,
+        fontSize: 13,
+        color: COLORS.textTertiary,
+        marginBottom: SPACING.m,
+        textAlign: 'center',
+        textTransform: 'uppercase',
+        letterSpacing: 1.5,
     },
     suggestionsContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'center',
         gap: SPACING.s,
-        marginTop: SPACING.l,
     },
     suggestionChip: {
         backgroundColor: COLORS.surface,
@@ -289,9 +408,16 @@ const styles = StyleSheet.create({
         borderRadius: RADIUS.round,
         borderWidth: 1,
         borderColor: COLORS.border,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.xs,
+    },
+    suggestionIcon: {
+        fontSize: 14,
     },
     suggestionText: {
         ...TYPOGRAPHY.caption,
+        fontSize: 14,
         color: COLORS.textSecondary,
     },
     threadContainer: {
@@ -299,7 +425,7 @@ const styles = StyleSheet.create({
     },
     threadContent: {
         paddingHorizontal: SPACING.m,
-        paddingBottom: 100, // Space for bottom input
+        paddingBottom: 100,
         paddingTop: SPACING.m,
     },
     bottomInputContainer: {
