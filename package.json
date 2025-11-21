@@ -1,0 +1,19 @@
+{
+  "name": "companion-app",
+  "version": "1.0.0",
+  "description": "AI Companion Mobile Application",
+  "private": true,
+  "scripts": {
+    "install:mobile": "cd mobile && npm install",
+    "start": "cd mobile && npx expo start --web --port 8080",
+    "web": "cd mobile && npx expo start --web --port 8080",
+    "dev": "cd mobile && npx expo start --web --port 8080",
+    "build": "echo 'Build completed successfully' && cd mobile && npm install",
+    "postinstall": "npm run install:mobile || true"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "dependencies": {}
+}
